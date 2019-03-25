@@ -1,5 +1,6 @@
 from aiohttp import web
 import asyncio
+import math
 from RPLCD import CharLCD
 from RPi import GPIO
 
@@ -29,6 +30,10 @@ async def reset(request):
     await setup_lcd()
     return web.Response(text='Success')
 
+async def format_line(line, gpu_c='', gpu_f='', cpu_c='', cpu_f=''):
+    return line.format(gpu_c=gpu_c, cpu_c=cpu_c, gpu_f=gpu_f,
+                       cpu_f=cpu_f, drg=chr(0))
+
 async def set_temps(request):
     reset = request.query.get('reset', None)
     if reset is not None:
@@ -47,13 +52,11 @@ async def set_temps(request):
         cpu_f = await c_to_f(cpu_c)
     except ValueError:  # catch error and leave values to default
         pass
-    text = u'GPU:{gpu_c:.1f}C {gpu_f:.2f}F\r\nCPU:{cpu_c:.1f}C \
-{cpu_f:.2f}F'.format(gpu_c=gpu_c,
-                       cpu_c=cpu_c,
-                       gpu_f=gpu_f,
-                       cpu_f=cpu_f)
-    lcd.clear()
-    lcd.write_string(text.replace('<o>', chr(0)))
+    line1 = (await format_line(u'GPU:{gpu_c:.2f}C {gpu_f:.1f}F',
+                               gpu_c=gpu_c, gpu_f=gpu_f))[:16]
+    line2 = (await format_line(u'CPU:{cpu_c:.2f}C {cpu_f:.1f}F', cpu_c=cpu_c, cpu_f=cpu_f))[:16]
+    text = line1 + "\r\n" + line2
+    lcd.write_string(text)
     print(text)
     return web.Response(text=text)
 
@@ -73,3 +76,4 @@ if __name__ == '__main__':
         web.run_app(app)
     finally:
         print('GPIO cleaned up. ')
+
