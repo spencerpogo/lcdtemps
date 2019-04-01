@@ -1,4 +1,5 @@
 from guizero import App, Text, PushButton
+from get_temps import *
 import os
 import sys
 import time
@@ -11,36 +12,6 @@ frequency = 1 # how often to set in seconds
 paused = False
 running = True
 s = requests.Session()
-
-class Temperature:
-    """Represents a temperature in celsius. """
-    def __init__(self, f=None, c=None):
-        if f is None and c is None:
-            raise TypeError('Either fahrenheit or celcius should have a value. ')
-        elif f is not None and c is not None:
-            raise TypeError('Specify a value for eith celsius or fahrenheit, not both. ')
-        elif f is not None and c is None:
-            self.c = Temperature.f_to_c(float(f))
-        elif c is not None and f is None:
-            self.c = float(c)
-        else:
-            raise TypeError('oof f is ' + str(f) + 'c is ' + str(c))
-    
-    def get_temp(self):
-        return float(self.c)
-    
-    def f_to_c(f):
-        return (f - 32) * 5.0/9.0
-
-def get_cpu_temp():
-    """Returns the CPU temp in celsius. """
-    return Temperature(c=
-        os.popen("/opt/vc/bin/vcgencmd measure_temp").read()
-        .replace("=", " ")[5:-3])
-
-def get_gpu_temp():
-    """Returns the GPU temp in celsius. """
-    return Temperature(f="80")
 
 def main(mtext):
     global paused
@@ -83,8 +54,23 @@ def reset_lcd():
     paused = time.time() + 0.3 # sleep for 0.3 more seconds
     threading.Thread(target=clear_after, args=(rtext, 1.5)).start()
 
-button = PushButton(app, command=reset_lcd, text="Reset LCD")
+def start_stop():
+    global paused
+    if paused:
+        try:
+            start_stop_button.text = 'Stop'
+        except:
+            pass
+        paused = False
+    elif not paused:
+        try:
+            start_stop_button.text = 'Start'
+        except:
+            pass
+        paused = True
+
+reset_button = PushButton(app, command=reset_lcd, text="Reset LCD")
+start_stop_button = PushButton(app, command=start_stop, text='Stop')
 thread = threading.Thread(target=main, args=(mtext,))
 thread.start()
 app.display()
-

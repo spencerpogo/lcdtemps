@@ -23,7 +23,7 @@ async def setup_lcd():
         0b00000,
         0b00000,
         0b00000,
-    ))
+    ))  # degree symbol
 
 async def reset(request):
     GPIO.cleanup()
@@ -35,32 +35,30 @@ async def format_line(line, gpu_c='', gpu_f='', cpu_c='', cpu_f=''):
                        cpu_f=cpu_f, drg=chr(0))
 
 async def set_temps(request):
+    global lcd
     reset = request.query.get('reset', None)
     if reset is not None:
         await reset(None)
-    gpu_c = request.query.get('gpu', "?")
+    gpu_c = request.query.get('gpu_temp', "?")
     gpu_f = '?'
-    cpu_c = request.query.get('cpu', "?")
+    cpu_c = request.query.get('cpu_temp', "?")
     gpu_f = '?'
-    try:
-        gpu_c = float(gpu_c)
-        gpu_f = await c_to_f(gpu_c)
-    except ValueError:  # catch error and leave values to default
-        pass
-    try:
-        cpu_c = float(cpu_c)
-        cpu_f = await c_to_f(cpu_c)
-    except ValueError:  # catch error and leave values to default
-        pass
-    line1 = (await format_line(u'GPU:{gpu_c:.2f}C {gpu_f:.1f}F',
+    gpu_use = request.query.get('gpu_use', '?')
+    cpu_use = request.query.get('cpu_use', '?')
+    line1 = (await format_line(u'GPU:{gpu_c:.2f}C {gpu_use:.1f}%',
                                gpu_c=gpu_c, gpu_f=gpu_f))[:16]
-    line2 = (await format_line(u'CPU:{cpu_c:.2f}C {cpu_f:.1f}F', cpu_c=cpu_c, cpu_f=cpu_f))[:16]
+    line2 = (await format_line(u'CPU:{cpu_c:.2f}C {cpu_use:.1f}%', cpu_c=cpu_c, cpu_f=cpu_f))[:16]
     text = line1 + "\r\n" + line2
     lcd.write_string(text)
-    print(text)
+    print(text.replace('\r\n', '\n'))
     return web.Response(text=text)
 
+async def custom_message(request):
+    global lcd
+    lcd.write_string(request.query.get('msg', ''))
+
 async def clear(request):
+    global lcd
     lcd.clear()
     return web.Response(text="Success")
 
@@ -76,4 +74,3 @@ if __name__ == '__main__':
         web.run_app(app)
     finally:
         print('GPIO cleaned up. ')
-
