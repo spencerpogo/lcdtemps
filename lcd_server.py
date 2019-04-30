@@ -24,34 +24,42 @@ async def setup_lcd():
         0b00000,
         0b00000,
     ))  # degree symbol
+    lcd.write_string('Server Ready! ')
 
 async def reset(request):
     GPIO.cleanup()
     await setup_lcd()
     return web.Response(text='Success')
 
-async def format_line(line, gpu_c='', gpu_f='', cpu_c='', cpu_f=''):
-    return line.format(gpu_c=gpu_c, cpu_c=cpu_c, gpu_f=gpu_f,
-                       cpu_f=cpu_f, drg=chr(0))
+async def format_line(line, gpu_temp='', mem_use='', gpu_use='', cpu_use=''):
+    if line == 'CPU:{cpu_use:.1f}%MEM{mem_use:.1f}%':
+        try:
+            cpu_use = float(cpu_use)
+        except:
+            pass
+        if type(cpu_use) is float and cpu_use < 10:
+            line = line[:18] + ' ' + line[18:]
+    return line.format(gpu_temp=gpu_temp, mem_use=mem_use, cpu_use=cpu_use, gpu_use=gpu_use, drg=chr(0))
 
 async def set_temps(request):
     global lcd
     reset = request.query.get('reset', None)
     if reset is not None:
         await reset(None)
-    gpu_c = request.query.get('gpu_temp', "?")
-    gpu_f = '?'
-    cpu_c = request.query.get('cpu_temp', "?")
-    gpu_f = '?'
-    gpu_use = request.query.get('gpu_use', '?')
-    cpu_use = request.query.get('cpu_use', '?')
-    line1 = (await format_line(u'GPU:{gpu_c:.2f}C {gpu_use:.1f}%',
-                               gpu_c=gpu_c, gpu_f=gpu_f))[:16]
-    line2 = (await format_line(u'CPU:{cpu_c:.2f}C {cpu_use:.1f}%', cpu_c=cpu_c, cpu_f=cpu_f))[:16]
-    text = line1 + "\r\n" + line2
-    lcd.write_string(text)
-    print(text.replace('\r\n', '\n'))
-    return web.Response(text=text)
+    gpu_temp = float(request.query.get('gpu_temp', "-1"))
+    gpu_use = float(request.query.get('gpu_load', '-1'))
+    cpu_use = float(request.query.get('cpu_load', "-1"))
+    mem_use = float(request.query.get('mem_use', "-1"))
+    line1 = (await format_line(u'GPU:{gpu_temp:.2f}C {gpu_use:.1f}%',
+                               gpu_temp=gpu_temp, gpu_use=gpu_use))[:16]
+    line2 = (await format_line(u'CPU:{cpu_use:.1f}%MEM{mem_use:.1f}%', cpu_use=cpu_use, mem_use=mem_use))[:16]
+    lcd.clear()
+    lcd.cursor_pos = (0, 0)
+    lcd.write_string(line1)
+    lcd.crlf()
+    lcd.write_string(line2)
+    print(line1 + '\n' + line2)
+    return web.Response(text=line1 + '\n' + line2)
 
 async def custom_message(request):
     global lcd

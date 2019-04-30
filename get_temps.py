@@ -1,27 +1,30 @@
-class Temperature:
-    """Represents a temperature in celsius. """
-    def __init__(self, f=None, c=None):
-        if f is None and c is None:
-            raise TypeError('Either fahrenheit or celcius should have a value. ')
-        elif f is not None and c is not None:
-            raise TypeError('Specify a value for eith celsius or fahrenheit, not both. ')
-        elif f is not None and c is None:
-            self.c = Temperature.f_to_c(float(f))
-        elif c is not None and f is None:
-            self.c = float(c)
-        else:
-            raise TypeError('oof f is ' + str(f) + 'c is ' + str(c))
+import wmi
 
-    def get_temp(self):
-        return float(self.c)
+mon_wmi = wmi.WMI(namespace=r'root/OpenHardwareMonitor')
 
-    def f_to_c(f):
-        return (f - 32) * 5.0/9.0
+class TemperatureRetrivalFailure(Exception): pass
 
-def get_cpu_temp():
-    """Returns the CPU temp in celsius. """
-    return Temperature(c=5)
+def _get_data(name, type, desc):
+    vals = list(mon_wmi.Sensor(name=name, SensorType=type))
+    if len(vals) < 1:
+        raise TemperatureRetrivalFailure('No " + _desc + found. ')
+    elif len(vals) > 1:
+        raise TemperatureRetrivalFailure('Multiple " + desc + " found. ')
+    return vals[0].Value
 
 def get_gpu_temp():
-    """Returns the GPU temp in celsius. """
-    return Temperature(f="80")
+    """Returns the GPU temperature. """
+    return str(_get_data('GPU Core', 'Temperature', 'GPU temp'))
+
+
+def get_gpu_load():
+    """Returns percentage of GPU used. """
+    return str(_get_data('GPU Core', 'Load', "GPU Load"))
+
+def get_cpu_load():
+    """Returns percentage of CPU used. """
+    return str(_get_data('CPU Total', 'Load', 'CPU Load'))
+
+def get_mem_use():
+    """Returns percentage of memory used. """
+    return str(_get_data('Used Memory', 'Data', 'memory usage'))
