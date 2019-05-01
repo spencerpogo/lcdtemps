@@ -13,4 +13,4 @@ To setup do the following:
 #### Windows setup
 Just populate the function with a method of retrieving the temperatures for you system. If you are running windows, you can use the provided function without modifing them, but you need to have [Open Hardware Monitor](https://openhardwaremonitor.org/downloads/) running (I'd use minimize to try though) and the `wmi` module to communicate with it. Also only with windows you can use the provided `start.bat` and `stop.bat` file to control it. These use `pythonw` so it is fine to just close the cmd window that opens.
 Hope this helps!
-**Made by [@Scoder12](https://github.com/@Scoder12)**
+**Made by @Scoder12 [Github](https://github.com/Scoder12) [Repl.it](https://repl.it/@Scoder12)**
